@@ -8,4 +8,7 @@ There's no dependencies, it's written with no additional libraries, in vanilla J
 
 ## Get started
 place the pattern you want, then click the red bar on the top left.
-![Screenshot](patterns.png)
+![Screenshot](example.png)
+
+
+### Have fun!
