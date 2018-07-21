@@ -1,0 +1,223 @@
+<HTML>
+	<HEAD>
+		<style>
+		.red{
+			background-color:brown;
+			width:450px;
+			height:20px;
+			position:fixed;
+		}
+  		.dead{
+    		background-color: #00666f;
+            /* border:1px solid black; */
+  }
+
+  		.alive{
+    		background-color: black;
+            /* border:1px solid black; */
+  }
+
+  </style>
+</HEAD>
+<BODY oncontextmenu="return false;" style="background-color:#00666f" >
+<div style="position: relative; float: right;">
+     <button  id='but' style="width:100px; position:absolute; float: right; margin-right: 20px; " onclick="insert_borders()">Insert Borders</button>
+     <br><br>
+    <img src="patterns.png" alt="" style="float: right; margin-right: 30px;">
+</div>
+
+<SCRIPT>
+        
+grid=[];
+SQUARE_SIZE=15;
+
+current_window_width=window.innerWidth;
+current_window_height=window.innerHeight;
+
+screen_width=window.screen.width;
+screen_height=window.screen.height;
+
+//note: grid height or width is how many squares high or wide it is, not in px
+GRID_HEIGHT=Math.floor(((screen_height-150)/SQUARE_SIZE));
+GRID_WIDTH=Math.floor(((screen_width-250)/SQUARE_SIZE));
+// GRID_HEIGHT=30;
+// GRID_WIDTH=50;
+
+
+
+
+function insert_borders(){
+    button=document.getElementById('but');
+    d=document.querySelectorAll('div.alive, div.dead');
+    if(d[0].style.border!='1px solid black'){
+        Array.from(d).forEach(x=>x.style.border='1px solid black');
+        button.innerText='Remove Borders';
+    }
+    else{
+        Array.from(d).forEach(x=>x.style.border='');
+        button.innerText='Insert Borders';
+    }
+}
+
+
+function get_random_state(a,b){
+    //random state of 0 and 1
+    ret=[]
+    for(var i=0;i<a;i++){
+        ret.push([]);
+            for (var j=0;j<b;j++){
+                ret[i].push(Math.floor(Math.random()*2));
+        }
+    }
+    return ret;
+}
+
+
+
+fill_=function(a,b,c=0){
+    ret=[]
+    for(var i=0;i<a;i++){
+        ret.push([]);
+    }
+    for (var i=0;i<b;i++){
+        ret[i]=new Array(b).fill(c);
+    }
+    return ret;
+}
+
+
+
+count_neighbors=function(board,i,j){
+    count=0;
+    if( i+1<board.length && board[i+1][j]==1)
+        count++;
+    if(i+1<board.length && j+1<board.length && board[i+1][j+1]==1)
+        count++;
+    if(j+1<board.length && board[i][j+1]==1)
+        count++;
+    if(i-1>-1 && j+1<board.length && board[i-1][j+1]==1)
+        count++;
+    if(i-1>-1 && board[i-1][j]==1)
+        count++;
+    if(i-1>-1 && j-1>-1 && board[i-1][j-1]==1)
+        count++;
+    if(j-1>-1 && board[i][j-1]==1)
+        count++;
+    if(i+1<board.length && j-1>-1 && board[i+1][j-1]==1)
+        count++;
+    return count;
+
+}
+
+
+
+
+function render(state){
+    for (var left=0;left<GRID_HEIGHT;left++){
+        for(var top=0;top<GRID_WIDTH;top++){
+            //xor the states to only create elements if its different
+            if(state[left][top]!=Board[left][top]){
+                d=document.getElementById('l'+String(left)+'t'+String(top));
+                d.className= state[left][top]==1 ? "alive" : "dead";
+                Board[left][top]=state[left][top];
+            }
+        }
+    }
+}
+
+function lay_grid(state){
+    container=document.createElement('div');
+    container.id='container';
+    container.position='relative';
+    document.body.appendChild(container);
+    for (var left=0;left<GRID_HEIGHT;left++){
+            for(var top=0;top<GRID_WIDTH;top++){
+                var d=document.createElement("div");
+                d.style.top=Math.floor(left)*SQUARE_SIZE;
+                d.style.left=Math.floor(top)*SQUARE_SIZE;
+                d.style.width=SQUARE_SIZE+'px';
+                d.style.height=SQUARE_SIZE+'px';
+                d.style.position='absolute';
+                // document.body.appendChild(d);
+                document.getElementById('container').appendChild(d);
+                grid.push(d);
+                d.className="dead";
+                d.id='l'+String(left)+'t'+String(top);
+                Board[left][top]=state[left][top];
+                
+            }
+        }
+}
+
+
+
+
+
+Board=[];
+Board=fill_(GRID_HEIGHT,GRID_WIDTH,0);
+lay_grid(Board);
+
+alive_or_alive=function(){
+    new_state=fill_(Board.length,Board[0].length,0);
+    for (var row=0;row<Board.length;row++){
+        for( var col=0;col<Board[row].length;col++){
+            n_count=count_neighbors(Board,row,col);
+            if ((n_count==2 || n_count==3) && Board[row][col]==1 ){
+                new_state[row][col]=1;
+            }
+            if (n_count==3 && Board[row][col]==0){
+                new_state[row][col]=1;
+            }
+        }
+    }
+    render(new_state);
+}
+
+document.addEventListener("click", function(e){
+    //buttons type are called 'submit'
+    if (e.target.type=='submit')
+        return;
+    e.preventDefault(); 
+    var x=e.clientX;
+    var y=e.clientY;
+    var d=e.target;
+    x=Math.floor(x);
+    y=Math.floor(y);
+    if((e.which && e.which == 3) || (e.button && e.button == 2)){
+        //if right click    
+        if (d.className=='alive'){
+            d.className='dead';
+            state[Math.floor(y/SQUARE_SIZE)][Math.floor(x/SQUARE_SIZE)]=0;
+        }
+    }
+    else{
+        if(y<40 && e.target.className=='red'){        
+            n=window.setInterval(alive_or_alive,500);
+            
+        }
+        //d is the target element
+        if(d.className=='red'){
+            return;
+        }
+        if(d.className!='alive' && d.className!='dead'){
+        return;
+        }
+        d.className= d.className=='alive'? 'dead':'alive';
+        state=Board.slice()
+        state[Math.floor(y/SQUARE_SIZE)][Math.floor(x/SQUARE_SIZE)]= d.className=='alive'? 1 :0;
+        //render or clicking, shouldn't create new divs, they should just change the color and the state.
+        //the state is already changed, it should just change the class
+    }
+    
+});
+
+//comment these out to set starting state urself
+    // state=get_random_state(GRID_HEIGHT,GRID_WIDTH);
+    // Board=state.slice();
+    // n=window.setInterval(alive_or_alive,500);
+
+</SCRIPT>
+<div class="red"></div>
+
+</BODY>
+</HTML>
