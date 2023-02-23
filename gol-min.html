@@ -5,14 +5,16 @@
 </HEAD>
 
 <BODY oncontextmenu="return false;" style="background-color:#00666f">
-    <div style="position: relative; float: right;">
-        <button id='bordersButton' style="width:100px; position:absolute; float: right; margin-right: 20px; "
-            onclick="bordersOn?removeBorders():insertBorders()">Insert Borders</button>
-        <br><br>
-        <img src="patterns.png" alt="" style="float: right; margin-right: 30px;">
-    </div>
 
-    <SCRIPT>
+    <!-- import threejs and orbitcontrols -->
+
+    <script src="https://unpkg.com/three@0.125.2/build/three.js"></script>
+
+    <SCRIPT type="module">
+        import { OrbitControls } from 'https://unpkg.com/three@0.125.2/examples/jsm/controls/OrbitControls.js';
+
+        let is2D = false;
+
         let bordersOn = false;
         let grid = [];
         let SQUARE_SIZE = 15;
@@ -35,6 +37,69 @@
             document.getElementById('bordersButton').innerText = 'Insert Borders';
         }
 
+        function countNeighboringOnes(arr) {
+        const numRows = arr.length;
+        const numCols = arr[0].length;
+
+        const result = [];
+
+        for (let i = 0; i < numRows; i++) { result[i]=[]; for (let j=0; j < numCols; j++) { let count=0; for (let row=i
+            - 1; row <=i + 1; row++) { for (let col=j - 1; col <=j + 1; col++) { if (row>= 0 && row < numRows && col>= 0
+                && col < numCols && !(row===i && col===j)) { count +=arr[row][col]; } } } result[i][j]=count; } }
+                 return result }
+        
+        function countNeighbors2D(board, i, j) {
+            let count = 0;
+            if (i + 1 < board.length && board[i + 1][j] == 1)
+            count++;
+            if (i + 1 < board.length && j + 1 < board.length && board[i + 1][j + 1] == 1)
+            count++;
+            if (j + 1 < board.length && board[i][j + 1] == 1)
+            count++;
+            if (i - 1 > -1 && j + 1 < board.length && board[i - 1][j + 1] == 1)
+            count++;
+            if (i - 1 > -1 && board[i - 1][j] == 1)
+            count++;
+            if (i - 1 > -1 && j - 1 > -1 && board[i - 1][j - 1] == 1)
+            count++;
+            if (j - 1 > -1 && board[i][j - 1] == 1)
+            count++;
+            if (i + 1 < board.length && j - 1 > -1 && board[i + 1][j - 1] == 1)
+            count++;
+            return count;
+            
+        }
+
+        function countNeighboringOnes3D(arr) {
+        const numDims = arr.length;
+        const numRows = arr[0].length;
+        const numCols = arr[0][0].length;
+
+        const result = [];
+
+        for (let dim = 0; dim < numDims; dim++) {
+            result[dim] = [];
+            for (let i = 0; i < numRows; i++) {
+            result[dim][i] = [];
+            for (let j = 0; j < numCols; j++) {
+                let count = 0;
+                for (let d = -1; d <= 1; d++) {
+                for (let row = i - 1; row <= i + 1; row++) {
+                    for (let col = j - 1; col <= j + 1; col++) {
+                    if (dim + d >= 0 && dim + d < numDims && row >= 0 && row < numRows && col >= 0 && col < numCols && !(d === 0 && row === i && col === j)) {
+                        count += arr[dim + d][row][col];
+                    }
+                    }
+                }
+                }
+                result[dim][i][j] = count;
+            }
+            }
+        }
+
+        return result;
+        }
+
 
         function getRandomState2D(a, b) {
             //random state of 0 and 1 on a 2d board of dimension a,b
@@ -45,6 +110,16 @@
             }, () => Math.floor(Math.random() * 2)));
         }
 
+        function getRandomState3D(a, b, c) {
+            //random state of 0 and 1 on a 3d board of dimension a,b,c
+            return Array.from({
+                length: a
+            }, () => Array.from({
+                length: b
+            }, () => Array.from({
+                length: c
+            }, () => Math.floor(Math.random() * 2))));
+        }
 
 
         function fill2D(a, b, c = 0) {
@@ -56,48 +131,45 @@
             }, () => c));
         }
 
-
-
-        function countNeighbors2D(board, i, j) {
-            count = 0;
-            if (i + 1 < board.length && board[i + 1][j] == 1)
-                count++;
-            if (i + 1 < board.length && j + 1 < board.length && board[i + 1][j + 1] == 1)
-                count++;
-            if (j + 1 < board.length && board[i][j + 1] == 1)
-                count++;
-            if (i - 1 > -1 && j + 1 < board.length && board[i - 1][j + 1] == 1)
-                count++;
-            if (i - 1 > -1 && board[i - 1][j] == 1)
-                count++;
-            if (i - 1 > -1 && j - 1 > -1 && board[i - 1][j - 1] == 1)
-                count++;
-            if (j - 1 > -1 && board[i][j - 1] == 1)
-                count++;
-            if (i + 1 < board.length && j - 1 > -1 && board[i + 1][j - 1] == 1)
-                count++;
-            return count;
-
+        function fill3D(a, b, c, d = 0) {
+            //fill a 3d array of dimension a,b,c with d
+            return Array.from({
+                length: a
+            }, () => Array.from({
+                length: b
+            }, () => Array.from({
+                length: c
+            }, () => d)));
         }
-
-        function render(state) {
+        
+        function color2D(state) {
             for (var left = 0; left < GRID_HEIGHT; left++) {
                 for (var top = 0; top < GRID_WIDTH; top++) {
-                    //xor the states to only create elements if its different
-                    if (state[left][top] != Board[left][top]) {
-                        d = document.getElementById('l' + String(left) + 't' + String(top));
-                        d.className = state[left][top] == 1 ? "alive" : "dead";
-                        Board[left][top] = state[left][top];
+                    let d = document.getElementById('l' + String(left) + 't' + String(top));
+                    d.className = state[left][top] == 1 ? "alive" : "dead";
+                    Board[left][top] = state[left][top];
+                }
+            }
+        }
+
+        function color3D(state,cubes){
+
+            for (var left = 0; left < GRID_HEIGHT; left++) {
+                for (var top = 0; top < GRID_WIDTH; top++) {
+                    for (var depth = 0; depth < GRID_HEIGHT; depth++) {
+                        let d = 'l' + String(left) + 't' + String(top) + 'd' + String(depth);
+                        let cube = cubes.filter(c => c.userData.id == d)[0];
+                        if(cube){
+                            cube.material.color.set(state[left][top][depth] == 1 ? 0xff0000 : 0x00ff00);
+                            Board[left][top][depth] = state[left][top][depth];
+                        }
                     }
                 }
             }
         }
 
         function layGrid(state) {
-            container = document.createElement('div');
-            container.id = 'container';
-            container.position = 'relative';
-            document.body.appendChild(container);
+            let container = document.getElementById('container')
             for (var left = 0; left < GRID_HEIGHT; left++) {
                 for (var top = 0; top < GRID_WIDTH; top++) {
                     var d = document.createElement("div");
@@ -106,42 +178,154 @@
                     d.style.width = SQUARE_SIZE + 'px';
                     d.style.height = SQUARE_SIZE + 'px';
                     d.style.position = 'absolute';
-                    // document.body.appendChild(d);
-                    document.getElementById('container').appendChild(d);
-                    grid.push(d);
+                    container.appendChild(d);
                     d.className = "dead";
                     d.id = 'l' + String(left) + 't' + String(top);
-                    Board[left][top] = state[left][top];
-
                 }
             }
         }
 
-
-        Board = [];
-        Board = fill2D(GRID_HEIGHT, GRID_WIDTH, 0);
-        layGrid(Board);
-
-        function iterate() {
-            new_state = fill2D(Board.length, Board[0].length, 0);
-            for (var row = 0; row < Board.length; row++) {
-                for (var col = 0; col < Board[row].length; col++) {
-                    n_count = countNeighbors2D(Board, row, col);
-                    if ((n_count == 2 || n_count == 3) && Board[row][col] == 1) {
-                        new_state[row][col] = 1;
-                    }
-                    if (n_count == 3 && Board[row][col] == 0) {
-                        new_state[row][col] = 1;
+        function layGrid3D(state, scene, GRID_HEIGHT){
+            let SQUARE_SIZE = 1;
+            let geometry = new THREE.BoxGeometry( SQUARE_SIZE/2, SQUARE_SIZE/2, SQUARE_SIZE/2 );
+            //create cubes in the threejs Scene
+            for (var left = 0; left < GRID_HEIGHT; left++) {
+                for (var top = 0; top < GRID_HEIGHT; top++) {
+                    for (var depth = 0; depth < GRID_HEIGHT; depth++) {
+                        let material = new THREE.MeshBasicMaterial( {color: 0x00ff00, opacity:.5, transparent:true} );
+                        let cube = new THREE.Mesh( geometry, material );
+                        cube.position.x = left * SQUARE_SIZE;
+                        cube.position.y = top * SQUARE_SIZE;
+                        cube.position.z = depth * SQUARE_SIZE;
+                        cube.userData.id = 'l' + String(left) + 't' + String(top) + 'd' + String(depth);
+                        cubes.push(cube);
+                        scene.add( cube );
                     }
                 }
             }
-            render(new_state);
+        }
+
+        function applyRuleToBoard3D (born, survive, board){
+            let new_state = countNeighboringOnes3D(board);
+            for (var dim = 0; dim < board.length; dim++) {
+                for (var row = 0; row < board[dim].length; row++) {
+                    for (var col = 0; col < board[dim][row].length; col++) {
+                        if(board[dim][row][col] == 1){
+                            if (survive.includes(new_state[dim][row][col])) {
+                                new_state[dim][row][col] = 1;
+                            } else {
+                                new_state[dim][row][col] = 0;
+                            }
+                        } else {
+                            if (born.includes(new_state[dim][row][col])) {
+                                new_state[dim][row][col] = 1;
+                            } else {
+                                new_state[dim][row][col] = 0;
+                            }
+                        }
+                    }
+                }
+            }
+            return new_state;
+        }
+
+        function applyRuleToBoard (born, survive, board){
+            let new_state = countNeighboringOnes(board);
+            for (var row = 0; row < board.length; row++) {
+                for (var col = 0; col < board[row].length; col++) {
+                    if(board[row][col] == 1){
+                        if (survive.includes(new_state[row][col])) {
+                            new_state[row][col] = 1;
+                        } else {
+                            new_state[row][col] = 0;
+                        }
+                    } else {
+                        if (born.includes(new_state[row][col])) {
+                            new_state[row][col] = 1;
+                        } else {
+                            new_state[row][col] = 0;
+                        }
+                    }
+                }
+            }
+            return new_state;
+        }
+
+        function iterate2D() {
+            let rule = [[3,6],[2,3]];
+            let new_state = applyRuleToBoard(...rule,Board)
+            color2D(new_state);
+        }
+
+        function iterate3D(){
+            // let new_state = fill3D(Board.length, Board[0].length, Board[0][0].length, 0);
+            let rule = [[3,6],[2,3]];
+            let new_state = applyRuleToBoard3D(...rule,Board)
+            console.log(Board[0][0])
+            console.log(new_state[0][0])
+            color3D(new_state,cubes);
+        }
+
+        function setupThreeJsRendererAndCamera () {
+            let GRID_HEIGHT = 6;
+            let renderer = new THREE.WebGLRenderer();
+            renderer.setSize( window.innerWidth, window.innerHeight );
+            document.body.appendChild( renderer.domElement );
+            let camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+            camera.position.z = 20;
+            // connect orbitControls
+            let controls = new OrbitControls( camera, renderer.domElement );
+            
+            // create a scene
+            let scene = new THREE.Scene();
+            
+            Board = [];
+            // Board = fill3D(GRID_HEIGHT, GRID_HEIGHT, GRID_HEIGHT, 0);
+            Board = getRandomState3D(GRID_HEIGHT, GRID_HEIGHT, GRID_HEIGHT);
+            window.Board =Board;
+            layGrid3D(Board, scene, GRID_HEIGHT);
+            
+            function animate() {
+                requestAnimationFrame( animate );
+                controls.update();
+                renderer.render( scene, camera );
+            }
+            animate();
+            window.setInterval(iterate3D, 1000);
+            // iterate3D();
+            
+        }
+        let Board;
+        let cubes = [];
+        window.cubes = cubes;
+        
+        if(is2D)
+            setup2Dlogic();
+        else
+            setupThreeJsRendererAndCamera();
+
+        function setup2Dlogic() {
+            //template string
+            let html = `
+            <div style="position: relative; float: right;">
+                <button id='bordersButton' style="width:100px; position:absolute; float: right; margin-right: 20px; "
+                    onclick="bordersOn?removeBorders():insertBorders()">Insert Borders</button>
+                <br><br>
+                <img src="patterns.png" alt="" style="float: right; margin-right: 30px;">
+            </div>
+            <div class="red" style="z-index:10;"></div>
+            `
+            document.body.innerHTML += html;
+
+            Board = [];
+            Board = fill2D(GRID_HEIGHT, GRID_WIDTH, 0);
+            layGrid(Board);
         }
 
         document.addEventListener("click", function (e) {
             //buttons type are called 'submit'
             if (e.target.className == 'red') {
-                n = window.setInterval(iterate, 500);
+                let n = window.setInterval(iterate2D, 500);
                 return;
             }
             
@@ -152,19 +336,25 @@
             var y = Math.floor(e.clientY);
 
             e.target.className = e.target.className == 'alive' ? 'dead' : 'alive';
-            state = Board.slice()
+            let state = Board.slice()
             state[Math.floor(y / SQUARE_SIZE)][Math.floor(x / SQUARE_SIZE)] = e.target.className == 'alive' ?
                 1 : 0;
 
         });
 
-        //comment these out to set starting state urself
-        // state=getRandomState2D(GRID_HEIGHT,GRID_WIDTH);
-        // Board=state.slice();
-        // n=window.setInterval(iterate,500);
-    </SCRIPT>
-    <div class="red"></div>
+        if(is2D){
+            let state=getRandomState2D(GRID_HEIGHT,GRID_WIDTH);
+            Board=state.slice();
+            let n=window.setInterval(iterate2D,500);
+        }
+        else{
+            let state=getRandomState3D(GRID_HEIGHT,GRID_HEIGHT,GRID_HEIGHT);
+            Board=state.slice();
+            let n=window.setInterval(iterate3D,500);
+        }
 
+    </SCRIPT>
+<div id="container" style="position: relative;"></div>
 </BODY>
 
 </HTML>
