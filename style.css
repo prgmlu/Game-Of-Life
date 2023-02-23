@@ -1,0 +1,16 @@
+.red {
+    background-color: brown;
+    width: 450px;
+    height: 20px;
+    position: fixed;
+}
+
+.dead {
+    background-color: #00666f;
+    /* border:1px solid black; */
+}
+
+.alive {
+    background-color: black;
+    /* border:1px solid black; */
+}
